@@ -31,6 +31,9 @@ git clone https://github.com/marianaagdias/ECG_Denoiser.git
 cd ECG_Denoiser
 pip install -r requirements.txt
 
+```
+
+## Code Structure
 
 ** Schematic representation of the creation of noisy samples from adding MA, EM and BW
 noise to the clean ECG samples from PTB-XL
