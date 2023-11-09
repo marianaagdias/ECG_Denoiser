@@ -33,6 +33,30 @@ pip install -r requirements.txt
 
 ```
 
+## Databases
+For the development of the ECG noise removal model, in the first place, we created a dataset with noisy and clean
+versions of ECG signals. For that, we used the PTB-XL and the MIT-BIH Noise Stress Test databases. These are two 
+publicly available datasets from Physionet and can be accessed in:
+- PTB-XL: https://physionet.org/content/ptb-xl/1.0.3/
+- MIT-BIH Noise Stress Test: https://physionet.org/content/nstdb/1.0.0/
+
+
 ## Code Structure
+
+tools: package including the necessary functions for the project.
+
+### Dataset Creation
+In the "create_dataset" folder, it is possible to find 3 scripts that were used to create the train, validation and test
+sets, more concretely:
+- 1_get_save_data_from_db.py : script for loading the data from the databases
+- 2_train_val_test_split: data curation; splitting the data in train, validation and test sets; pre-processing of the 
+clean (ground truth) ECG data from the PTB-XL database
+- 3_create_noisy_data2_360hz: creation of noisy ECG records (to be used as input of the model) from the clean ECG 
+records and the noise data from the MIT-BIH noise stress test db.
+
+### Model
+- gru_denoiser.py and utils_denoiser.py: PyTorch implementation of a gated recurrent unit (GRU) model for the task of removing noise from electrocardiogram (ECG) signals
+- evaluate_test_set.py: script for testing the trained model
+- best_gru_denoiser_360Hz: weights of the trained model after performing hyperparameter optimization on the validation set
 
 
