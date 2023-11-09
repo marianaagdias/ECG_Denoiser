@@ -35,6 +35,4 @@ pip install -r requirements.txt
 
 ## Code Structure
 
-** Schematic representation of the creation of noisy samples from adding MA, EM and BW
-noise to the clean ECG samples from PTB-XL
-![Noise](figures/fig2_noise.png)
+
