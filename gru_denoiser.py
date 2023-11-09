@@ -124,7 +124,7 @@ def evaluate_test(model, dataloader, file_name, directory_res, features, gpu_id=
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-data', default='data_500/',
+    parser.add_argument('-data', default='data/',
                         help="Path to the dataset.")
     parser.add_argument('-epochs', default=20, type=int,
                         help="""Number of epochs to train the model.""")

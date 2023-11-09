@@ -15,7 +15,7 @@ model.load_state_dict(torch.load(path_to_weights, map_location=torch.device(devi
 model.eval()
 
 # test dataset
-test_dataset = DatasetSequence('data_500/', [45777, 3270, 3267], 'test2')
+test_dataset = DatasetSequence('data/', [45777, 3270, 3267], 'test2')
 test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
 # evaluate the performance of the model

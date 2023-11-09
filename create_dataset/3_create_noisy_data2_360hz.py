@@ -1,19 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
 import pickle
 import random
-
 import os, sys, inspect
-
 import scipy.signal as si
 import scipy.stats as stats
 import math
-
-from tools.compute_metrics import signaltonoise
-
+from tools.compute_metrics_with_GT import signaltonoise
 import sklearn.preprocessing as pp
-
 import tol_colors as tc
 
 
@@ -22,7 +16,7 @@ pickle_in = open('data_noise.pickle', 'rb')
 noise_in = pickle.load(pickle_in)
 
 
-ma = np.concatenate((np.array(noise_in[-1][:, 0]), np.array(noise_in[-1][:, 1])))  # there are two "noise signals" - what is the difference?
+ma = np.concatenate((np.array(noise_in[-1][:, 0]), np.array(noise_in[-1][:, 1])))
 em = np.concatenate((np.array(noise_in[-2][:, 0]), np.array(noise_in[-2][:, 1])))
 bw = np.concatenate((np.array(noise_in[-3][:, 0]), np.array(noise_in[-3][:, 1])))
 
@@ -49,28 +43,28 @@ bw_test = bw[int(noise_length*0.9):]
 
 
 # ecg data - there was a problem with the ecg data folder from NAS so i downloaded the data
-ecg_train_directory = 'data_500/Y_train_all_leads/'
-ecg_val_directory = 'data_500/Y_val_all_leads/'
-ecg_test_directory = 'data_500/Y_test_all_leads/'
+ecg_train_directory = 'data/Y_train_all_leads/'
+ecg_val_directory = 'data/Y_val_all_leads/'
+ecg_test_directory = 'data/Y_test_all_leads/'
 
 n_train = 15259
 n_val = 3270
 n_test = 3267
 
-Y_train_dir = 'data_500/Y/Y_train/'
-Y_test_dir = 'data_500/Y/Y_test/'
-Y_val_dir = 'data_500/Y/Y_val/'
+Y_train_dir = 'data/Y/Y_train/'
+Y_test_dir = 'data/Y/Y_test/'
+Y_val_dir = 'data/Y/Y_val/'
 
-Y_class_train_dir = 'data_500/Y_class/Y_train/'
-Y_class_test_dir = 'data_500/Y_class/Y_test/'
-Y_class_val_dir = 'data_500/Y_class/Y_val/'
+Y_class_train_dir = 'data/Y_class/Y_train/'
+Y_class_test_dir = 'data/Y_class/Y_test/'
+Y_class_val_dir = 'data/Y_class/Y_val/'
 
-X_train_dir = 'data_500/X/X_train/'
-X_test_dir = 'data_500/X/X_test/'
-X_val_dir = 'data_500/X/X_val/'
+X_train_dir = 'data/X/X_train/'
+X_test_dir = 'data/X/X_test/'
+X_val_dir = 'data/X/X_val/'
 
 
-# Empty Datasets directories (to change the datasets)
+# Empty Datasets directories (in the case they contain anything)
 for file in os.listdir(X_val_dir):
     os.remove(str(X_val_dir + '/' + file))
 for file in os.listdir(Y_val_dir):
@@ -171,7 +165,7 @@ for i in range(0, n_train):
     select_noise = ['bw', 'bw + ma', 'bw + em', 'ma + em', 'bw + ma + em']
     np.random.shuffle(select_noise)
     selection = select_noise[0]
-    # print(selection)
+
     factor_bw = random.uniform(0.7, 1.3)
     factor_ma = random.uniform(0.7, 1.3)
     factor_em = random.uniform(1, 1.5)
@@ -202,12 +196,8 @@ for i in range(0, n_train):
     with open(Y_class_train_dir + str(i) + '_' + str(leads_names[leads_n[2]]) + '.npy', 'wb') as f:
         np.save(f, noise_class_bw)
 
-
-
-# plots para o paper
-
+# plots
 i = 90
-
 ecg = np.load(ecg_train_directory + str(i) + '.npy')
 
 peaks = []
@@ -287,79 +277,6 @@ plt.xticks(np.arange(0, 3601, step=360), x_label[0], fontsize=26)
 plt.yticks(fontsize=26)
 plt.xlabel('seconds', fontsize=28)
 plt.ylabel('Amplitude (a.u.)', fontsize=28)
-
-
-# CREATE TEST SETS
-for i in range(0, n_test):
-    ecg_all = np.load(ecg_test_directory + str(i) + '.npy')
-    # randomly select 1 ecg lead
-    lead = random.randint(0, 11)
-    ecg = ecg_all[:, lead]
-    signal_length = len(ecg)
-
-    # save the lead as an Y_train sample
-    with open(Y_test_dir + str(i) + '.npy', 'wb') as f:
-        np.save(f, ecg)
-
-    # add noise to each signal and save as an X_train sample
-
-    # create an array with same shape as the ecg, mostly composed by 0's and with the noise signal (4 s) in a random
-    # position
-    noise_input_length = random.randint(2, 6) * 360  # 2 to 6 seconds
-    noise_ma = np.zeros_like(ecg)
-    noise_em = np.zeros_like(ecg)
-    noise_bw = np.zeros_like(ecg)
-
-    noise_test_length = len(ma_test)
-    st = random.randint(0, noise_test_length - noise_input_length)  # starting point from the noise signal for the em/ma
-    st_bw = random.randint(0, noise_test_length - signal_length)
-    st2_ma = random.randint(0, signal_length - noise_input_length)  # sample from the ecg where we will put the noise
-    st2_em = random.randint(0, signal_length - noise_input_length)
-
-    noise_input_ma = ma_test[st:st + noise_input_length]
-    noise_input_em = em_test[st:st + noise_input_length]
-    noise_input_bw = bw_test[st_bw:st_bw + signal_length]  # BW noise will affect the whole signal
-
-    noise_ma[st2_ma:st2_ma + noise_input_length] = noise_input_ma
-    noise_em[st2_em:st2_em + noise_input_length] = noise_input_em
-
-    factor_bw = random.uniform(0.7, 1.3)
-    factor_ma = random.uniform(0.7, 1.3)
-    factor_em = random.uniform(1, 1.5)
-
-    choice = random.randint(0, 2)  # 0 - ma; 1 - em; 2 - bw or any combination
-
-    if choice == 0:  # ma
-        noise_class = [1, 0, 0]
-        noisy_ecg = ecg + factor_ma * noise_ma
-    elif choice == 1:  # em
-        noise_class = [0, 1, 0]
-        noisy_ecg = ecg + factor_em * noise_em
-    else:
-        select_noise = ['bw', 'bw + ma', 'bw + em', 'ma + em', 'bw + ma + em']
-        np.random.shuffle(select_noise)
-        selection = select_noise[0]
-        if selection == 'bw':
-            noise_class = [0, 0, 1]
-            noisy_ecg = ecg + factor_bw * noise_input_bw
-        elif selection == 'bw + ma':
-            noise_class = [1, 0, 1]
-            noisy_ecg = ecg + factor_bw * noise_input_bw + factor_ma * noise_ma
-        elif selection == 'bw + em':
-            noise_class = [0, 1, 1]
-            noisy_ecg = ecg + factor_bw * noise_input_bw + factor_em * noise_em
-        elif selection == 'ma + em':
-            noise_class = [1, 1, 0]
-            noisy_ecg = ecg + factor_ma * noise_ma + factor_em * noise_em
-        elif selection == 'bw + ma + em':
-            noise_class = [1, 1, 1]
-            noisy_ecg = ecg + factor_bw * noise_input_bw + factor_ma * noise_ma + factor_em * noise_em
-
-    with open(X_test_dir + str(i) + '.npy', 'wb') as f:
-        np.save(f, noisy_ecg)
-
-    with open(Y_class_test_dir + str(i) + '.npy', 'wb') as f:
-        np.save(f, noise_class)
 
 
 # CREATE VALIDATION SETS
@@ -446,26 +363,14 @@ for i in range(0, n_val):
 
 
 
-########################################################################
+# CREATE TEST SETS (2 - used for the paper) - Adding noise of known SNRin values of either 0, 5, 7, or 10 dB
 
-for file in os.listdir('data_500/Y_class/Y_test2'):
-    os.remove(str('data_500/Y_class/Y_test2/' + file))
-for file in os.listdir('data_500/Y/Y_test2'):
-    os.remove(str('data_500/Y/Y_test2/' + file))
-for file in os.listdir('data_500/X/X_test2'):
-    os.remove(str('data_500/X/X_test2/' + file))
-
-
-def create_noise_Xdb(ecg, noise, db=0):
-    frac = sum(ecg**2) / sum(noise**2)
-
-    fac = frac/math.exp(db)
-
-    noise_to_add = noise*math.sqrt(fac)
-
-    noisy_ecg = ecg + noise_to_add
-
-    return noisy_ecg
+for file in os.listdir('data/Y_class/Y_test2'):
+    os.remove(str('data/Y_class/Y_test2/' + file))
+for file in os.listdir('data/Y/Y_test2'):
+    os.remove(str('data/Y/Y_test2/' + file))
+for file in os.listdir('data/X/X_test2'):
+    os.remove(str('data/X/X_test2/' + file))
 
 
 def compute_factor_Xdb(ecg, noise, db=0):
@@ -482,7 +387,7 @@ def compute_factor_Xdb(ecg, noise, db=0):
 
 # CREATE TEST SETS 2 ----- saving the timesteps  choosing the leads
 for i in range(0, n_test):
-    ecg_all = np.load('data_500/Y_test_all_leads/' + str(i) + '.npy')
+    ecg_all = np.load('data/Y_test_all_leads/' + str(i) + '.npy')
 
     peaks = []
     ord = []
@@ -499,7 +404,7 @@ for i in range(0, n_test):
     signal_length = len(ecg)
 
     # save the lead as an Y_test sample
-    with open('data_500/Y/Y_test2/' + str(i) + '.npy', 'wb') as f:
+    with open('data/Y/Y_test2/' + str(i) + '.npy', 'wb') as f:
         np.save(f, ecg)
 
     # add noise to each signal and save as an X_train sample
@@ -530,7 +435,7 @@ for i in range(0, n_test):
     # save the start and ending points of the noise AND the snr_in
     ts_st_end = [st2, st2 + noise_input_length]
     info = np.append(ts_st_end, snr_in)
-    with open('data_500/Y_test_noise_timesteps/' + str(i) + '.npy', 'wb') as f:
+    with open('data/Y_test_noise_timesteps/' + str(i) + '.npy', 'wb') as f:
         np.save(f, info)
 
     choice = random.randint(0, 2)  # 0 - ma; 1 - em; 2 - bw or any combination
@@ -574,19 +479,19 @@ for i in range(0, n_test):
             fact = compute_factor_Xdb(ecg, noise, db=snr_in)
             noisy_ecg = ecg + fact * noise
 
-    with open('data_500/X/X_test2/' + str(i) + '.npy', 'wb') as f:
+    with open('data/X/X_test2/' + str(i) + '.npy', 'wb') as f:
         np.save(f, noisy_ecg)
 
-    with open('data_500/Y_class/Y_test2/' + str(i) + '.npy', 'wb') as f:
+    with open('data/Y_class/Y_test2/' + str(i) + '.npy', 'wb') as f:
         np.save(f, noise_class)
 
 
 # check
 i = 5
-clean = np.load('data_500/Y/Y_test2/' + str(i) + '.npy')
-noisy = np.load('data_500/X/X_test2/' + str(i) + '.npy')
-info = np.load('data_500/Y_test_noise_timesteps/' + str(i) + '.npy')
-classi = np.load('data_500/Y_class/Y_test2/' + str(i) + '.npy')
+clean = np.load('data/Y/Y_test2/' + str(i) + '.npy')
+noisy = np.load('data/X/X_test2/' + str(i) + '.npy')
+info = np.load('data/Y_test_noise_timesteps/' + str(i) + '.npy')
+classi = np.load('data/Y_class/Y_test2/' + str(i) + '.npy')
 
 plt.figure()
 plt.plot(clean)
@@ -596,3 +501,77 @@ print(classi)
 
 print(signaltonoise(clean[info[0]: info[1]], noisy[info[0]: info[1]]))
 print(signaltonoise(clean[info[0]: info[1]], pp.minmax_scale(noisy[info[0]: info[1]])))
+
+
+
+# CREATE TEST SETS (not used for the paper)
+for i in range(0, n_test):
+    ecg_all = np.load(ecg_test_directory + str(i) + '.npy')
+    # randomly select 1 ecg lead
+    lead = random.randint(0, 11)
+    ecg = ecg_all[:, lead]
+    signal_length = len(ecg)
+
+    # save the lead as an Y_train sample
+    with open(Y_test_dir + str(i) + '.npy', 'wb') as f:
+        np.save(f, ecg)
+
+    # add noise to each signal and save as an X_train sample
+
+    # create an array with same shape as the ecg, mostly composed by 0's and with the noise signal (4 s) in a random
+    # position
+    noise_input_length = random.randint(2, 6) * 360  # 2 to 6 seconds
+    noise_ma = np.zeros_like(ecg)
+    noise_em = np.zeros_like(ecg)
+    noise_bw = np.zeros_like(ecg)
+
+    noise_test_length = len(ma_test)
+    st = random.randint(0, noise_test_length - noise_input_length)  # starting point from the noise signal for the em/ma
+    st_bw = random.randint(0, noise_test_length - signal_length)
+    st2_ma = random.randint(0, signal_length - noise_input_length)  # sample from the ecg where we will put the noise
+    st2_em = random.randint(0, signal_length - noise_input_length)
+
+    noise_input_ma = ma_test[st:st + noise_input_length]
+    noise_input_em = em_test[st:st + noise_input_length]
+    noise_input_bw = bw_test[st_bw:st_bw + signal_length]  # BW noise will affect the whole signal
+
+    noise_ma[st2_ma:st2_ma + noise_input_length] = noise_input_ma
+    noise_em[st2_em:st2_em + noise_input_length] = noise_input_em
+
+    factor_bw = random.uniform(0.7, 1.3)
+    factor_ma = random.uniform(0.7, 1.3)
+    factor_em = random.uniform(1, 1.5)
+
+    choice = random.randint(0, 2)  # 0 - ma; 1 - em; 2 - bw or any combination
+
+    if choice == 0:  # ma
+        noise_class = [1, 0, 0]
+        noisy_ecg = ecg + factor_ma * noise_ma
+    elif choice == 1:  # em
+        noise_class = [0, 1, 0]
+        noisy_ecg = ecg + factor_em * noise_em
+    else:
+        select_noise = ['bw', 'bw + ma', 'bw + em', 'ma + em', 'bw + ma + em']
+        np.random.shuffle(select_noise)
+        selection = select_noise[0]
+        if selection == 'bw':
+            noise_class = [0, 0, 1]
+            noisy_ecg = ecg + factor_bw * noise_input_bw
+        elif selection == 'bw + ma':
+            noise_class = [1, 0, 1]
+            noisy_ecg = ecg + factor_bw * noise_input_bw + factor_ma * noise_ma
+        elif selection == 'bw + em':
+            noise_class = [0, 1, 1]
+            noisy_ecg = ecg + factor_bw * noise_input_bw + factor_em * noise_em
+        elif selection == 'ma + em':
+            noise_class = [1, 1, 0]
+            noisy_ecg = ecg + factor_ma * noise_ma + factor_em * noise_em
+        elif selection == 'bw + ma + em':
+            noise_class = [1, 1, 1]
+            noisy_ecg = ecg + factor_bw * noise_input_bw + factor_ma * noise_ma + factor_em * noise_em
+
+    with open(X_test_dir + str(i) + '.npy', 'wb') as f:
+        np.save(f, noisy_ecg)
+
+    with open(Y_class_test_dir + str(i) + '.npy', 'wb') as f:
+        np.save(f, noise_class)
