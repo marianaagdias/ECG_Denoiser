@@ -36,14 +36,14 @@ def import_model(gpu_id=None, path_weights='best_gru_denoiser_360Hz'):
     return model
 
 
-def prepare_ecg(signal, freq_samp=None, minmax_norm=False):
+def prepare_ecg(signal, freq_samp=None, minmax_norm=True):
     """
     Function that prepares ECG data signals prior to using the GRU denoiser
     :param signal: ECG signal (1D)
     :param freq_samp: signal sampling frequency (only if different than 360)
+    :param minmax_norm: (boolean) if true, perform minmax normalization; otherwise normalize between -1 and 1
     :return: signal after performing 1) resampling (if freq_samp != None) to 360 Hz, 2) Min-Max normalization and
     3) reshaping and conversion to tensor
-    :param minmax_norm: (boolean) if true, perform minmax normalization instead of normalization between -1 and 1
     """
     if freq_samp:
         len_1 = len(signal)
@@ -62,7 +62,7 @@ def prepare_ecg(signal, freq_samp=None, minmax_norm=False):
     return signal_tensor
 
 
-def clean_ecg(signal, model, figures=True, title='', postalign=True):
+def clean_ecg(signal, model, figures=True, title='', postalign=True, minmax_norm=True):
     """
         Function that takes an ECG signal (noisy signal) and performs the denoising, using the GRU denoiser
         :param signal: ECG signal (1D)
@@ -85,6 +85,8 @@ def clean_ecg(signal, model, figures=True, title='', postalign=True):
         # clean very low freq noise from the output signal
         high_pass = butter(3, 0.5, 'highpass', fs=360, output='sos')
         sig_clean_np = sosfilt(high_pass, sig_clean_np)
+        if minmax_norm:
+            sig_clean_np = pp.minmax_scale(sig_clean_np)
 
     if figures:
         colors = list(tc.tol_cset('bright'))
@@ -103,7 +105,7 @@ def clean_ecg(signal, model, figures=True, title='', postalign=True):
     return sig_clean_np, dur
 
 
-def clean_ecg_segments(signal, model, seg_size=360*30, overlap=360, mean_overlap=True, figures=True, vlines=False, title='', postalign=False):
+def clean_ecg_segments(signal, model, seg_size=360*30, overlap=360, mean_overlap=True, figures=True, vlines=False, title='', postalign=False, minmax_norm=True):
     """
         Function that takes an ECG signal (noisy signal) and performs the denoising, using the GRU denoiser
         :param signal: ECG signal (1D)
@@ -163,6 +165,8 @@ def clean_ecg_segments(signal, model, seg_size=360*30, overlap=360, mean_overlap
         # clean very low freq noise from the output signal
         high_pass = butter(3, 0.5, 'highpass', fs=360, output='sos')
         sig_clean_np = sosfilt(high_pass, sig_clean_np)
+        if minmax_norm:
+            sig_clean_np = pp.minmax_scale(sig_clean_np)
 
     if figures:
         colors = list(tc.tol_cset('bright'))
